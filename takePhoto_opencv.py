@@ -1,5 +1,5 @@
 # coding: UTF-8 
-# ver. 1.2 2020.10.19
+# ver. 1.2.1 2020.10.24
 
 import cv2
 from pathlib import Path
@@ -29,7 +29,8 @@ SENSOR_PIN = 18
 LED_PIN = 4
 
 interval_sec = 60
-runTime_min = 120
+interval_photo_sec = 3
+runTime_min = 2
 
 # I2C Busの指定
 i2c_bus = 1
@@ -64,7 +65,7 @@ def LED_on():
  start_time = time.time()
  while True:
   time_count = time.time()-start_time
-  if time_count > 4:
+  if time_count > interval_photo_sec:
    GPIO.output(LED_PIN, GPIO.LOW)
    break
 
