@@ -1,5 +1,5 @@
 # coding: UTF-8 
-# ver. 1.2.1 2020.10.24
+# ver. 1.2.3 2020.11.17
 
 import cv2
 from pathlib import Path
@@ -30,7 +30,7 @@ LED_PIN = 4
 
 interval_sec = 60
 interval_photo_sec = 3
-runTime_min = 2
+runTime_min = 120
 
 # I2C Busの指定
 i2c_bus = 1
@@ -42,8 +42,8 @@ lcd_addr = 0x3e
 bme280_addr = 0x76
 
 dPath = '/home/pi/myPython'
-imgDir = 'piPhoto_3'
-logDir = 'humidity_Log_3'
+imgDir = 'piPhoto_4'
+logDir = 'humidity_log_4'
 
 # openCV
 HAAR_FILE = "/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml"
@@ -103,8 +103,6 @@ def check_humidity():
  f.close()
 
 def gammaConv(gammaVal,img):
-# img = 255 * (img / 255) ** (1 / gammaVal)
-# img_gamma = np.clip(img, 0, 255).astype(np.uint8)
  gamma_cvt = np.zeros((256,1), dtype=np.uint8)
  for i in range(256):
   gamma_cvt[i][0] = 255*(float(i)/255) ** (1.0 / gammaVal)
@@ -121,7 +119,7 @@ def check_face():
 
  for fname in images:
   filename = Path(fname).stem
-  print(filename)
+  #print(filename)
   img = cv2.imread(fname)
   img_gamma = gammaConv(gamma,img)
   img_g = cv2.imread(fname,0)
@@ -129,25 +127,27 @@ def check_face():
 
   if len(face) == 1:
    H, W, ch = img.shape
+   print(filename)
    for x,y,w,h in face:
-    img_cropped = img_gamma[y+int(h*1.1):y+int(h*2.6),x-int(h*0.4):x+int(h*1.1) :]
-    img_face = img_gamma.copy()
+    if x-int(h*0.4) > 0 and x+int(h*1.1)<W:
+     img_cropped = img_gamma[y+int(h*1.1):y+int(h*2.6),x-int(h*0.4):x+int(h*1.1) :]
+     img_face = img_gamma.copy()
    #cv2.rectangle(img_face, (x,y),(x+w,y+h),(0,0,255),1)
 
-    filename_face = filename + '_face.jpg'
-    saveDir = os.path.join(*[Path(fname).parent,'face'])
-    os.makedirs(saveDir, exist_ok=True)
-    savePath = os.path.join(*[saveDir ,filename_face])
-    cv2.imwrite(savePath,img_face)
+     filename_face = filename + '_face.jpg'
+     saveDir = os.path.join(*[Path(fname).parent,'face'])
+     os.makedirs(saveDir, exist_ok=True)
+     savePath = os.path.join(*[saveDir ,filename_face])
+     cv2.imwrite(savePath,img_face)
 
-    img_resized = cv2.resize(img_cropped, dsize=(300,300))
-    img_clothes.append(img_resized)
+     img_resized = cv2.resize(img_cropped, dsize=(300,300))
+     img_clothes.append(img_resized)
 
-    filename_cloth = filename + '_cloth.jpg'
-    saveDir = os.path.join(*[Path(fname).parent,'cloth'])
-    os.makedirs(saveDir, exist_ok=True)
-    savePath = os.path.join(*[saveDir ,filename_cloth])
-    cv2.imwrite(savePath,img_resized)
+     filename_cloth = filename + '_cloth.jpg'
+     saveDir = os.path.join(*[Path(fname).parent,'cloth'])
+     os.makedirs(saveDir, exist_ok=True)
+     savePath = os.path.join(*[saveDir ,filename_cloth])
+     cv2.imwrite(savePath,img_resized)
 
 
 def main():
