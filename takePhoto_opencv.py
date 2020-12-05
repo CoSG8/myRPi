@@ -1,5 +1,5 @@
 # coding: UTF-8 
-# ver. 1.2.3 2020.11.17
+# ver. 1.3 2020.12.02
 
 import cv2
 from pathlib import Path
@@ -29,7 +29,7 @@ SENSOR_PIN = 18
 LED_PIN = 4
 
 interval_sec = 60
-interval_photo_sec = 3
+interval_photo_sec = 2
 runTime_min = 120
 
 # I2C Busの指定
@@ -166,11 +166,18 @@ def main():
  check_humidity()
 
  # Loop
+ detectNum = 0
  startTime = time.time()
  while True:
   timeCount = time.time()-startTime
   if bPhotoReady:
    if pi.digitalRead(SENSOR_PIN) == pi.HIGH:
+    detectNum += 1
+    print ("Someone is here.")
+   else:
+    detectNum = 0
+    print ("Nobody is here.")
+   if detectNum == 3:
     take_photo()
     photoTime = timeCount
     bPhotoReady = False
@@ -182,6 +189,8 @@ def main():
    check_humidity()
    break
  
+  time.sleep(1)
+
  check_face()
 
  GPIO.output(LED_PIN, GPIO.LOW) 
@@ -189,3 +198,4 @@ def main():
 
 if __name__== "__main__":
  main()
+
