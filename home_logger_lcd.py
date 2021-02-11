@@ -1,5 +1,5 @@
 # coding: UTF-8
-# ver. 1.0 2021.02.10
+# ver. 1.0.1 2021.02.11
 
 import os
 import datetime
@@ -138,12 +138,6 @@ def main():
 	print("{0:6.1f} hPa".format(pressure))
 	print("{0:6.1f} lux".format(illumi))
 
-	# LCD
-	dispTxt = "{0}".format(temperature)
-	lcd_print_message(0, dispTxt)
-	dispTxt = "{0}".format(humidity)
-	lcd_print_message(1, dispTxt)
-	
 	# Logging
 	d = datetime.datetime.now()
 	datetxt = d.strftime('%Y%m%d')
@@ -156,7 +150,13 @@ def main():
 	f.write(txt)
 	f.close()
 
-	# Display and wait
+	# LCD
+	dispTxt = "{0}".format(temperature)
+	lcd_print_message(0, dispTxt)
+	dispTxt = "{0}".format(humidity)
+	lcd_print_message(1, dispTxt)
+
+	# Wait
 	startTime = time.time()
 	while True:
 		timeCount = time.time()-startTime
