@@ -6,7 +6,7 @@
 ## Presented by RaspiMAG 2020/10
 ## Programmed by pochi_ken
 ## Modified by Akito Kosugi
-## v. 1.0.4 06.28.2021
+## v. 1.0.5 07.18.2021
 
 # ライブラリー定義
 import RPi.GPIO as GPIO
@@ -15,6 +15,15 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
+
+i2c = smbus.SMBus(1)
+
+_addr=0x3e
+LCD_init= [0x38, 0x39, 0x14, 0x73, 0x56, 0x6c, 0x38, 0x01, 0x0f, 0x01]
+LCD_l2nd=0x40+0x80
+
+SW_PIN = 16     #GPIO 23
+interval_sec = 120*60
 
 def scraping():
     options = Options()
@@ -52,6 +61,14 @@ def lcd_init():
     for dat in LCD_init:
         lcd_ctrl(dat)
 
+def lcd_clear():
+    cmds = [0x0c, 0x01]
+    i2c.write_i2c_block_data(_addr, 0x00, cmds)
+    time.sleep(0.002)
+    i2c.write_byte_data(_addr, 0x00, 0x06)
+    time.sleep(0.2)
+
+
 def forecast(todays_weather):
     # 点灯LEDの選択
     if todays_weather == "曇":
@@ -70,6 +87,10 @@ def forecast(todays_weather):
         sel = "Rai/Clo"
     elif todays_weather  == "雨のち晴":
         sel = "Rai/Sun"
+    elif todays_weather  == "曇のち雨":
+        sel = "Clo/Rai"
+    elif todays_weather  == "曇のち晴":
+        sel = "Clo/Sun"
     elif todays_weather  == "曇一時雨":
         sel = "Clo-Rai"
     elif todays_weather == "晴一時雨":
@@ -78,33 +99,66 @@ def forecast(todays_weather):
         sel = "Forecast"
     return sel
 
+
+# switch
+def callback(self):
+    lcd_clear()
+    #scraping
+    todays_weather, todays_high_temp, todays_rain_prob = scraping()
+    print("現在の天気:" + todays_weather)
+    print("最高気温:" + todays_high_temp)
+    print("降水確率:" + todays_rain_prob)
+    sel = forecast(todays_weather)
+    #Display
+    #lcd_init()
+    lcd_display(sel)
+    time.sleep(0.2)
+    lcd_ctrl(LCD_l2nd)
+    lcd_display(todays_high_temp+todays_rain_prob)
+    time.sleep(0.2)
+
 # Main
-# setting up GPIO
-GPIO.setmode(GPIO.BOARD)
-GPIO.setwarnings(False)
-i2c = smbus.SMBus(1)
-_addr=0x3e
-LCD_init= [0x38, 0x39, 0x14, 0x73, 0x56, 0x6c, 0x38, 0x01, 0x0f, 0x01]
-LCD_l2nd=0x40+0x80
-#lcd_init()
-#lcd_display("Weather")
+def main():
 
-try:
-    while True:
-        todays_weather, todays_high_temp, todays_rain_prob = scraping()
-        print("現在の天気:" + todays_weather)
-        print("最高気温:" + todays_high_temp)
-        print("降水確率:" + todays_rain_prob)
-        sel = forecast(todays_weather)
-        lcd_init()
-        lcd_display(sel)
-        time.sleep(1)
+    # setting up GPIO
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setwarnings(False)
+    GPIO.setup(SW_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(SW_PIN, GPIO.RISING, callback=callback, bouncetime=200)
 
-        lcd_ctrl(LCD_l2nd)
-        lcd_display(todays_high_temp+todays_rain_prob)
-        time.sleep(1)
+    # setting up LCD
+    lcd_init()
 
-except KeyboardInterrupt:
-    pass
+    try:
+        startTime = time.time()
+        while True:
+            timeCount = time.time()-startTime
 
-GPIO.cleanup()
+            todays_weather, todays_high_temp, todays_rain_prob = scraping()
+            print("現在の天気:" + todays_weather)
+            print("最高気温:" + todays_high_temp)
+            print("降水確率:" + todays_rain_prob)
+            sel = forecast(todays_weather)
+                
+            #Display
+            lcd_display(sel)
+            time.sleep(0.2)
+            lcd_ctrl(LCD_l2nd)
+            lcd_display(todays_high_temp+todays_rain_prob)
+            time.sleep(0.2)
+
+            # Wait
+            if timeCount  > interval_sec:
+                break
+
+            time.sleep(5*60)
+
+    except KeyboardInterrupt:
+        pass
+
+
+    GPIO.cleanup()
+    lcd_clear()
+
+if __name__== "__main__":
+    main()
